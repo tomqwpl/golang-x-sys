@@ -29,14 +29,27 @@ func Connect() (*Mgr, error) {
 	return ConnectRemote("")
 }
 
+// ConnectPerms establishes a connection to the service control manager
+// with given permissions
+func ConnectPerms(access uint32) (*Mgr, error) {
+	return ConnectRemotePerms("", access)
+}
+
 // ConnectRemote establishes a connection to the
 // service control manager on computer named host.
 func ConnectRemote(host string) (*Mgr, error) {
+	return ConnectRemotePerms(host, windows.SC_MANAGER_ALL_ACCESS)
+}
+
+// ConnectRemote establishes a connection to the
+// service control manager on computer named host
+// with given permissions
+func ConnectRemotePerms(host string, access uint32) (*Mgr, error) {
 	var s *uint16
 	if host != "" {
 		s = syscall.StringToUTF16Ptr(host)
 	}
-	h, err := windows.OpenSCManager(s, nil, windows.SC_MANAGER_ALL_ACCESS)
+	h, err := windows.OpenSCManager(s, nil, access)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +172,12 @@ func (m *Mgr) CreateService(name, exepath string, c Config, args ...string) (*Se
 // OpenService retrieves access to service name, so it can
 // be interrogated and controlled.
 func (m *Mgr) OpenService(name string) (*Service, error) {
-	h, err := windows.OpenService(m.Handle, syscall.StringToUTF16Ptr(name), windows.SERVICE_ALL_ACCESS)
+	return m.OpenServicePerms(name, windows.SERVICE_ALL_ACCESS)
+}
+
+// OpenService retrieves access to service name with given permissions
+func (m *Mgr) OpenServicePerms(name string, access uint32) (*Service, error) {
+	h, err := windows.OpenService(m.Handle, syscall.StringToUTF16Ptr(name), access)
 	if err != nil {
 		return nil, err
 	}
